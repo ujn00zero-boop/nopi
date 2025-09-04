@@ -28,3 +28,26 @@ export interface User {
   totalSavings: number;
   createdAt: Date;
 }
+
+export interface Budget {
+  id: string;
+  name: string;
+  totalBudget: number;
+  totalIncome: number;
+  totalExpenses: number;
+  period: Date; // Month/Year
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BudgetTransaction {
+  id: string;
+  budgetId: string;
+  amount: number;
+  type: 'income' | 'expense';
+  category?: string; // Only for expenses
+  description: string;
+  date: Date;
+  userId: string;
+}
