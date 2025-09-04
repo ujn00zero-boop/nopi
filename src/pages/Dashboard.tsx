@@ -1,19 +1,27 @@
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Target, Wallet } from 'lucide-react';
 import Layout from '../components/Layout';
 import StatsCards from '../components/Dashboard/StatsCards';
 import GoalCard from '../components/Dashboard/GoalCard';
+import BudgetCard from '../components/Dashboard/BudgetCard';
 import AddGoalModal from '../components/Dashboard/AddGoalModal';
+import AddBudgetModal from '../components/Dashboard/AddBudgetModal';
 import SavingsChart from '../components/Dashboard/SavingsChart';
 import { useSavingsGoals } from '../hooks/useSavingsGoals';
+import { useBudgets } from '../hooks/useBudgets';
+import { useBudgetTransactions } from '../hooks/useBudgetTransactions';
 import { SavingsGoal } from '../types';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 const Dashboard: React.FC = () => {
   const { goals, loading: goalsLoading, addGoal, updateGoal } = useSavingsGoals();
+  const { budgets, loading: budgetsLoading, addBudget, updateBudget } = useBudgets();
+  const { addTransaction: addBudgetTransaction } = useBudgetTransactions();
   const [showAddGoalModal, setShowAddGoalModal] = useState(false);
+  const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
+  const [activeTab, setActiveTab] = useState<'goals' | 'budget'>('goals');
 
   const addTransaction = async (transactionData: any) => {
     // This will be handled by the useTransactions hook when called
@@ -72,7 +80,44 @@ const Dashboard: React.FC = () => {
     setEditingGoal(null);
   };
 
-  if (goalsLoading) {
+  const handleAddBudgetTransaction = async (budgetId: string, amount: number, type: 'income' | 'expense', description: string, category?: string) => {
+    try {
+      // Add budget transaction
+      await addBudgetTransaction({
+        budgetId,
+        amount,
+        type,
+        description,
+        category,
+        date: new Date(),
+      });
+
+      // Update budget totals
+      const budget = budgets.find(b => b.id === budgetId);
+      if (budget) {
+        const updates = type === 'income' 
+          ? { totalIncome: budget.totalIncome + amount }
+          : { totalExpenses: budget.totalExpenses + amount };
+        
+        await updateDoc(doc(db, 'budgets', budgetId), {
+          ...updates,
+          updatedAt: new Date(),
+        });
+      }
+    } catch (error) {
+      console.error('Error adding budget transaction:', error);
+    }
+  };
+
+  const handleAddBudget = async (budgetData: any) => {
+    try {
+      await addBudget(budgetData);
+    } catch (error) {
+      console.error('Error saving budget:', error);
+    }
+  };
+
+  if (goalsLoading || budgetsLoading) {
     return (
       <Layout>
         <div className="space-y-6">
@@ -94,29 +139,60 @@ const Dashboard: React.FC = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Savings Dashboard</h1>
-            <p className="text-gray-600">Track your savings goals and monitor progress</p>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600">Manage your savings goals and budget</p>
           </div>
-          <div>
+        </div>
+
+        {/* Tabs */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1">
+          <div className="flex space-x-1">
             <button
-              onClick={() => setShowAddGoalModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+              onClick={() => setActiveTab('goals')}
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'goals'
+                  ? 'bg-green-100 text-green-700'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
             >
-              <Plus className="h-5 w-5" />
+              <Target className="h-4 w-4" />
+              <span>Goals</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('budget')}
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'budget'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Wallet className="h-4 w-4" />
+              <span>Budget</span>
             </button>
           </div>
         </div>
-{/* Goals and Transactions */}
-        <div className="space-y-6">
+
+        {/* Tab Content */}
+        {activeTab === 'goals' ? (
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">Your Goals</h2>
-              <span className="text-sm text-gray-500">{goals.length} active goals</span>
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-500">{goals.length} active goals</span>
+                <button
+                  onClick={() => setShowAddGoalModal(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>New Goal</span>
+                </button>
+              </div>
             </div>
             
             {goals.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
                 <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mx-auto mb-4">
-                  <Plus className="h-8 w-8 text-green-600" />
+                  <Target className="h-8 w-8 text-green-600" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No savings goals yet</h3>
                 <p className="text-gray-600 mb-4">Create your first savings goal to start tracking your progress</p>
@@ -139,14 +215,56 @@ const Dashboard: React.FC = () => {
                 ))}
               </div>
             )}
-        </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">Your Budget</h2>
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-500">{budgets.length} active budgets</span>
+                <button
+                  onClick={() => setShowAddBudgetModal(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>New Budget</span>
+                </button>
+              </div>
+            </div>
+            
+            {budgets.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+                <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mx-auto mb-4">
+                  <Wallet className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No budgets yet</h3>
+                <p className="text-gray-600 mb-4">Create your first budget to start tracking your expenses</p>
+                <button
+                  onClick={() => setShowAddBudgetModal(true)}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Create Your First Budget
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {budgets.map((budget) => (
+                  <BudgetCard
+                    key={budget.id}
+                    budget={budget}
+                    onAddTransaction={handleAddBudgetTransaction}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Stats Cards */}
-        <StatsCards goals={goals} />
+        {activeTab === 'goals' && <StatsCards goals={goals} />}
 
         {/* Charts */}
-        <SavingsChart goals={goals} />
-
-        
+        {activeTab === 'goals' && <SavingsChart goals={goals} />}
 
         {/* Add Goal Modal */}
         <AddGoalModal
@@ -154,6 +272,13 @@ const Dashboard: React.FC = () => {
           onClose={closeModal}
           onAdd={handleAddGoal}
           editGoal={editingGoal}
+        />
+
+        {/* Add Budget Modal */}
+        <AddBudgetModal
+          isOpen={showAddBudgetModal}
+          onClose={() => setShowAddBudgetModal(false)}
+          onAdd={handleAddBudget}
         />
       </div>
     </Layout>
