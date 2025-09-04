@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, Calendar, TrendingUp, Plus, Minus, MoreVertical } from 'lucide-react';
+import { Target, Calendar, TrendingUp, Plus, Minus, MoreVertical, ChevronDown, ChevronUp } from 'lucide-react';
 import { SavingsGoal } from '../../types';
 import { format } from 'date-fns';
 
@@ -11,6 +11,7 @@ interface GoalCardProps {
 
 const GoalCard: React.FC<GoalCardProps> = ({ goal, onAddTransaction, onEditGoal }) => {
   const [showTransactionForm, setShowTransactionForm] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [transactionAmount, setTransactionAmount] = useState('');
   const [transactionType, setTransactionType] = useState<'deposit' | 'withdrawal'>('deposit');
   const [description, setDescription] = useState('');
@@ -39,8 +40,11 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onAddTransaction, onEditGoal 
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
+      <div className="flex items-start justify-between">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center space-x-3 flex-1 text-left hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+        >
           <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg">
             <Target className="h-5 w-5 text-green-600" />
           </div>
@@ -48,7 +52,14 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onAddTransaction, onEditGoal 
             <h3 className="text-lg font-semibold text-gray-900">{goal.name}</h3>
             <p className="text-sm text-gray-500">{goal.category}</p>
           </div>
-        </div>
+          <div className="ml-auto">
+            {isExpanded ? (
+              <ChevronUp className="h-5 w-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-gray-400" />
+            )}
+          </div>
+        </button>
         
         <button
           onClick={() => onEditGoal(goal)}
@@ -58,11 +69,12 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onAddTransaction, onEditGoal 
         </button>
       </div>
 
+      {isExpanded && (
+        <div className="space-y-4 mt-4">
       {goal.description && (
         <p className="text-sm text-gray-600 mb-4">{goal.description}</p>
       )}
 
-      <div className="space-y-4">
         <div>
           <div className="flex justify-between text-sm text-gray-600 mb-2">
             <span>Progress</span>
@@ -191,7 +203,8 @@ const GoalCard: React.FC<GoalCardProps> = ({ goal, onAddTransaction, onEditGoal 
             </div>
           </form>
         )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, History } from 'lucide-react';
 import Layout from '../components/Layout';
 import StatsCards from '../components/Dashboard/StatsCards';
 import GoalCard from '../components/Dashboard/GoalCard';
@@ -16,6 +16,7 @@ const Dashboard: React.FC = () => {
   const { goals, loading: goalsLoading, addGoal, updateGoal } = useSavingsGoals();
   const { transactions, loading: transactionsLoading, addTransaction } = useTransactions();
   const [showAddGoalModal, setShowAddGoalModal] = useState(false);
+  const [showTransactionHistory, setShowTransactionHistory] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
 
   const handleAddTransaction = async (goalId: string, amount: number, type: 'deposit' | 'withdrawal', description: string) => {
@@ -94,17 +95,25 @@ const Dashboard: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">Savings Dashboard</h1>
             <p className="text-gray-600">Track your savings goals and monitor progress</p>
           </div>
-          <button
-            onClick={() => setShowAddGoalModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-          >
-            <Plus className="h-5 w-5" />
-            <span>New Goal</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setShowTransactionHistory(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <History className="h-5 w-5" />
+              <span>History</span>
+            </button>
+            <button
+              onClick={() => setShowAddGoalModal(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+            >
+              <Plus className="h-5 w-5" />
+              <span>New Goal</span>
+            </button>
+          </div>
         </div>
 {/* Goals and Transactions */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          <div className="xl:col-span-2 space-y-6">
+        <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">Your Goals</h2>
               <span className="text-sm text-gray-500">{goals.length} active goals</span>
@@ -136,14 +145,6 @@ const Dashboard: React.FC = () => {
                 ))}
               </div>
             )}
-          </div>
-
-          <div className="xl:col-span-1">
-            <TransactionHistory 
-              transactions={transactions} 
-              loading={transactionsLoading} 
-            />
-          </div>
         </div>
         {/* Stats Cards */}
         <StatsCards goals={goals} />
@@ -159,6 +160,14 @@ const Dashboard: React.FC = () => {
           onClose={closeModal}
           onAdd={handleAddGoal}
           editGoal={editingGoal}
+        />
+
+        {/* Transaction History Dialog */}
+        <TransactionHistory
+          transactions={transactions}
+          loading={transactionsLoading}
+          isOpen={showTransactionHistory}
+          onClose={() => setShowTransactionHistory(false)}
         />
       </div>
     </Layout>
