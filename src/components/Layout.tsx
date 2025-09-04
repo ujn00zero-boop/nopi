@@ -1,6 +1,8 @@
 import React from 'react';
 import { LogOut, PiggyBank } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import DesktopNav from './Navigation/DesktopNav';
+import BottomNav from './Navigation/BottomNav';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -26,12 +28,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg">
                 <PiggyBank className="h-6 w-6 text-green-600" />
               </div>
+              <span className="text-xl font-bold text-gray-900">Nopi</span>
             </div>
+            
+            <DesktopNav />
             
             <div className="flex items-center space-x-4">
               <button
+                className="hidden md:flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 onClick={handleLogout}
-                className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <LogOut className="h-4 w-4" />
                 <span>Logout</span>
@@ -41,9 +46,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
         {children}
       </main>
+      
+      <BottomNav />
     </div>
   );
 };

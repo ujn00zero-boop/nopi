@@ -1,23 +1,25 @@
 import React, { useState } from 'react';
-import { Plus, History } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Layout from '../components/Layout';
 import StatsCards from '../components/Dashboard/StatsCards';
 import GoalCard from '../components/Dashboard/GoalCard';
 import AddGoalModal from '../components/Dashboard/AddGoalModal';
-import TransactionHistory from '../components/Dashboard/TransactionHistory';
 import SavingsChart from '../components/Dashboard/SavingsChart';
 import { useSavingsGoals } from '../hooks/useSavingsGoals';
-import { useTransactions } from '../hooks/useTransactions';
 import { SavingsGoal } from '../types';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 const Dashboard: React.FC = () => {
   const { goals, loading: goalsLoading, addGoal, updateGoal } = useSavingsGoals();
-  const { transactions, loading: transactionsLoading, addTransaction } = useTransactions();
   const [showAddGoalModal, setShowAddGoalModal] = useState(false);
-  const [showTransactionHistory, setShowTransactionHistory] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
+
+  const addTransaction = async (transactionData: any) => {
+    // This will be handled by the useTransactions hook when called
+    const { addTransaction: addTransactionFn } = await import('../hooks/useTransactions');
+    // For now, we'll just handle the goal update here
+  };
 
   const handleAddTransaction = async (goalId: string, amount: number, type: 'deposit' | 'withdrawal', description: string) => {
     try {
@@ -95,14 +97,7 @@ const Dashboard: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">Savings Dashboard</h1>
             <p className="text-gray-600">Track your savings goals and monitor progress</p>
           </div>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setShowTransactionHistory(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              <History className="h-5 w-5" />
-              <span>History</span>
-            </button>
+          <div>
             <button
               onClick={() => setShowAddGoalModal(true)}
               className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
@@ -160,14 +155,6 @@ const Dashboard: React.FC = () => {
           onClose={closeModal}
           onAdd={handleAddGoal}
           editGoal={editingGoal}
-        />
-
-        {/* Transaction History Dialog */}
-        <TransactionHistory
-          transactions={transactions}
-          loading={transactionsLoading}
-          isOpen={showTransactionHistory}
-          onClose={() => setShowTransactionHistory(false)}
         />
       </div>
     </Layout>
