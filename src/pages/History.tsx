@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowUpRight, ArrowDownLeft, Clock, Filter } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Clock, Filter, ChevronDown } from 'lucide-react';
 import Layout from '../components/Layout';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSavingsGoals } from '../hooks/useSavingsGoals';
@@ -13,6 +13,7 @@ const History: React.FC = () => {
   const { budgets, loading: loadingBudgets } = useBudgets();
   const { transactions: budgetTransactions, loading: loadingBudgetTransactions } = useBudgetTransactions();
   const [activeTab, setActiveTab] = useState<'all' | 'deposit' | 'withdrawal' | 'budget'>('all');
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const getGoalName = (goalId: string) => {
     const goal = goals.find(g => g.id === goalId);
@@ -74,84 +75,79 @@ const History: React.FC = () => {
 
   const loading = loadingTransactions || loadingBudgets || loadingBudgetTransactions;
 
+  const filterOptions = [
+    { value: 'all', label: 'All Transactions', count: allHistoryItems.length, total: null },
+    { value: 'deposit', label: 'Deposits', count: depositStats.count, total: depositStats.total },
+    { value: 'withdrawal', label: 'Withdrawals', count: withdrawalStats.count, total: withdrawalStats.total },
+    { value: 'budget', label: 'Budget Transactions', count: budgetTransactions.length, total: null },
+  ];
+
+  const currentFilter = filterOptions.find(option => option.value === activeTab);
+
   return (
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Transaction History</h1>
             <p className="text-gray-600">View all your financial history</p>
           </div>
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <Filter className="h-4 w-4" />
-            <span>{filteredHistoryItems.length} items</span>
-          </div>
-        </div>
+          
+          {/* Filter Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="flex items-center justify-between w-full sm:w-64 px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+            >
+              <div className="flex items-center space-x-3">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <div className="text-left">
+                  <div className="text-sm font-medium text-gray-900">{currentFilter?.label}</div>
+                  <div className="text-xs text-gray-500">
+                    {filteredHistoryItems.length} items
+                    {currentFilter?.total && ` • ₱${currentFilter.total.toLocaleString()}`}
+                  </div>
+                </div>
+              </div>
+              <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+            </button>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-1">
-          <div className="flex space-x-1">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'all'
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <div className="text-center">
-                <div className="font-semibold">All Transactions</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {allHistoryItems.length} total
+            {showDropdown && (
+              <div className="absolute right-0 mt-2 w-full sm:w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                <div className="py-2">
+                  {filterOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setActiveTab(option.value as any);
+                        setShowDropdown(false);
+                      }}
+                      className={`w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors ${
+                        activeTab === option.value ? 'bg-green-50 border-r-2 border-green-500' : ''
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className={`text-sm font-medium ${
+                            activeTab === option.value ? 'text-green-700' : 'text-gray-900'
+                          }`}>
+                            {option.label}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {option.count} transactions
+                            {option.total && ` • ₱${option.total.toLocaleString()}`}
+                          </div>
+                        </div>
+                        {activeTab === option.value && (
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('deposit')}
-              className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'deposit'
-                  ? 'bg-green-100 text-green-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <div className="text-center">
-                <div className="font-semibold">Deposits</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {depositStats.count} • ₱{depositStats.total.toLocaleString()}
-                </div>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('withdrawal')}
-              className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'withdrawal'
-                  ? 'bg-red-100 text-red-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <div className="text-center">
-                <div className="font-semibold">Withdrawals</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {withdrawalStats.count} • ₱{withdrawalStats.total.toLocaleString()}
-                </div>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('budget')}
-              className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'budget'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <div className="text-center">
-                <div className="font-semibold">Budgets</div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {budgetTransactions.length} • Inc: ₱{incomeStats.total.toLocaleString()} • Exp: ₱{expenseStats.total.toLocaleString()}
-                </div>
-              </div>
-            </button>
+            )}
           </div>
         </div>
 
