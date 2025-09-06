@@ -3,12 +3,16 @@ import { ArrowUpRight, ArrowDownLeft, Clock, Filter } from 'lucide-react';
 import Layout from '../components/Layout';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSavingsGoals } from '../hooks/useSavingsGoals';
-import { Transaction } from '../types';
+import { useBudgets } from '../hooks/useBudgets';
+import { useBudgetTransactions } from '../hooks/useBudgetTransactions';
+import { Transaction, BudgetTransaction, Budget } from '../types';
 
 const History: React.FC = () => {
-  const { transactions, loading } = useTransactions();
+  const { transactions, loading: loadingTransactions } = useTransactions();
   const { goals } = useSavingsGoals();
-  const [activeTab, setActiveTab] = useState<'all' | 'deposit' | 'withdrawal'>('all');
+  const { budgets, loading: loadingBudgets } = useBudgets();
+  const { transactions: budgetTransactions, loading: loadingBudgetTransactions } = useBudgetTransactions();
+  const [activeTab, setActiveTab] = useState<'all' | 'deposit' | 'withdrawal' | 'budget'>('all');
 
   const getGoalName = (goalId: string) => {
     const goal = goals.find(g => g.id === goalId);
@@ -31,6 +35,11 @@ const History: React.FC = () => {
     return transaction.type === activeTab;
   });
 
+  const getBudgetName = (budgetId: string) => {
+    const budget = budgets.find(b => b.id === budgetId);
+    return budget?.name || 'Unknown Budget';
+  };
+
   const getTabStats = (type: 'deposit' | 'withdrawal') => {
     const filtered = transactions.filter(t => t.type === type);
     const total = filtered.reduce((sum, t) => sum + t.amount, 0);
@@ -40,6 +49,31 @@ const History: React.FC = () => {
   const depositStats = getTabStats('deposit');
   const withdrawalStats = getTabStats('withdrawal');
 
+  const getBudgetTabStats = (type: 'income' | 'expense') => {
+    const filtered = budgetTransactions.filter(t => t.type === type);
+    const total = filtered.reduce((sum, t) => sum + t.amount, 0);
+    return { count: filtered.length, total };
+  };
+
+  const incomeStats = getBudgetTabStats('income');
+  const expenseStats = getBudgetTabStats('expense');
+
+  const allHistoryItems = [
+    ...transactions.map(t => ({ ...t, type: t.type as 'deposit' | 'withdrawal', itemType: 'transaction' as const })),
+    ...budgetTransactions.map(bt => ({ ...bt, type: bt.type as 'income' | 'expense', itemType: 'budgetTransaction' as const })),
+  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  const filteredHistoryItems = allHistoryItems.filter(item => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'budget') return item.itemType === 'budgetTransaction';
+    if (item.itemType === 'transaction') {
+      return item.type === activeTab;
+    }
+    return false;
+  });
+
+  const loading = loadingTransactions || loadingBudgets || loadingBudgetTransactions;
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -47,11 +81,11 @@ const History: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Transaction History</h1>
-            <p className="text-gray-600">View all your savings transactions</p>
+            <p className="text-gray-600">View all your financial history</p>
           </div>
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             <Filter className="h-4 w-4" />
-            <span>{filteredTransactions.length} transactions</span>
+            <span>{filteredHistoryItems.length} items</span>
           </div>
         </div>
 
@@ -69,7 +103,7 @@ const History: React.FC = () => {
               <div className="text-center">
                 <div className="font-semibold">All Transactions</div>
                 <div className="text-xs text-gray-500 mt-1">
-                  {transactions.length} total
+                  {allHistoryItems.length} total
                 </div>
               </div>
             </button>
@@ -103,6 +137,21 @@ const History: React.FC = () => {
                 </div>
               </div>
             </button>
+            <button
+              onClick={() => setActiveTab('budget')}
+              className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'budget'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <div className="text-center">
+                <div className="font-semibold">Budgets</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {budgetTransactions.length} • Inc: ₱{incomeStats.total.toLocaleString()} • Exp: ₱{expenseStats.total.toLocaleString()}
+                </div>
+              </div>
+            </button>
           </div>
         </div>
 
@@ -121,60 +170,83 @@ const History: React.FC = () => {
                 </div>
               ))}
             </div>
-          ) : filteredTransactions.length === 0 ? (
+          ) : filteredHistoryItems.length === 0 ? (
             <div className="text-center py-12">
               <Clock className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <p className="text-lg text-gray-500 mb-2">
-                {activeTab === 'all' 
-                  ? 'No transactions yet' 
-                  : `No ${activeTab}s yet`
-                }
+                {activeTab === 'all'
+                  ? 'No history items yet'
+                  : activeTab === 'budget'
+                    ? 'No budget transactions yet'
+                    : `No ${activeTab}s yet`}
               </p>
               <p className="text-sm text-gray-400">
                 {activeTab === 'all'
-                  ? 'Add money to your goals to see transaction history'
-                  : `Make some ${activeTab}s to see them here`
-                }
+                  ? 'Add money to your goals or manage your budgets to see history'
+                  : activeTab === 'budget'
+                    ? 'Add income or expenses to your budgets to see them here'
+                    : `Make some ${activeTab}s to see them here`}
               </p>
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {filteredTransactions.map((transaction) => (
+              {filteredHistoryItems.map((item) => (
                 <div
-                  key={transaction.id}
+                  key={item.id}
                   className="flex items-center space-x-4 p-6 hover:bg-gray-50 transition-colors"
                 >
-                  <div className={`flex items-center justify-center w-12 h-12 rounded-lg ${
-                    transaction.type === 'deposit' 
-                      ? 'bg-green-100 text-green-600' 
-                      : 'bg-red-100 text-red-600'
-                  }`}>
-                    {transaction.type === 'deposit' ? (
+                  <div
+                    className={`flex items-center justify-center w-12 h-12 rounded-lg ${
+                      item.itemType === 'transaction'
+                        ? item.type === 'deposit'
+                          ? 'bg-green-100 text-green-600'
+                          : 'bg-red-100 text-red-600'
+                        : item.type === 'income'
+                          ? 'bg-blue-100 text-blue-600'
+                          : 'bg-orange-100 text-orange-600'
+                    }`}
+                  >
+                    {item.itemType === 'transaction' ? (
+                      item.type === 'deposit' ? (
+                        <ArrowUpRight className="h-6 w-6" />
+                      ) : (
+                        <ArrowDownLeft className="h-6 w-6" />
+                      )
+                    ) : item.type === 'income' ? (
                       <ArrowUpRight className="h-6 w-6" />
                     ) : (
                       <ArrowDownLeft className="h-6 w-6" />
                     )}
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <p className="text-base font-medium text-gray-900">
-                        {getGoalName(transaction.goalId)}
+                        {item.itemType === 'transaction'
+                          ? getGoalName(item.goalId)
+                          : getBudgetName(item.budgetId)}
                       </p>
-                      <p className={`text-lg font-semibold ${
-                        transaction.type === 'deposit' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {transaction.type === 'deposit' ? '+' : '-'}₱{transaction.amount.toLocaleString()}
+                      <p
+                        className={`text-lg font-semibold ${
+                          item.itemType === 'transaction'
+                            ? item.type === 'deposit'
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                            : item.type === 'income'
+                              ? 'text-blue-600'
+                              : 'text-orange-600'
+                        }`}
+                      >
+                        {item.type === 'deposit' || item.type === 'income' ? '+' : '-'}₱
+                        {item.amount.toLocaleString()}
                       </p>
                     </div>
-                    {transaction.description && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        {transaction.description}
-                      </p>
+                    {item.description && (
+                      <p className="text-sm text-gray-600 mt-1">{item.description}</p>
                     )}
                     <p className="text-xs text-gray-500 mt-2 flex items-center">
                       <Clock className="h-3 w-3 mr-1" />
-                      {formatDate(transaction.date)}
+                      {formatDate(item.date)}
                     </p>
                   </div>
                 </div>

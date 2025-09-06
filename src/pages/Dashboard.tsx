@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Target, Wallet } from 'lucide-react';
+import { Plus, Target, Wallet, LandPlot } from 'lucide-react';
 import Layout from '../components/Layout';
 import StatsCards from '../components/Dashboard/StatsCards';
 import GoalCard from '../components/Dashboard/GoalCard';
@@ -21,30 +21,15 @@ const Dashboard: React.FC = () => {
   const [showAddGoalModal, setShowAddGoalModal] = useState(false);
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
-  const [activeTab, setActiveTab] = useState<'goals' | 'budget'>('goals');
-
-  const addTransaction = async (transactionData: any) => {
-    // This will be handled by the useTransactions hook when called
-    const { addTransaction: addTransactionFn } = await import('../hooks/useTransactions');
-    // For now, we'll just handle the goal update here
-  };
+  const [activeTab, setActiveTab] = useState<'goals' | 'budget' | 'loan'>('goals');
 
   const handleAddTransaction = async (goalId: string, amount: number, type: 'deposit' | 'withdrawal', description: string) => {
     try {
-      // Add transaction
-      await addTransaction({
-        goalId,
-        amount,
-        type,
-        description,
-        date: new Date(),
-      });
-
       // Update goal amount
       const goal = goals.find(g => g.id === goalId);
       if (goal) {
-        const newAmount = type === 'deposit' 
-          ? goal.currentAmount + amount 
+        const newAmount = type === 'deposit'
+          ? goal.currentAmount + amount
           : Math.max(0, goal.currentAmount - amount);
         
         await updateDoc(doc(db, 'savingsGoals', goalId), {
@@ -169,6 +154,17 @@ const Dashboard: React.FC = () => {
               <Wallet className="h-4 w-4" />
               <span>Budget</span>
             </button>
+            <button
+              onClick={() => setActiveTab('loan')}
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'loan'
+                  ? 'bg-purple-100 text-purple-700'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <LandPlot className="h-4 w-4" />
+              <span>Loan</span>
+            </button>
           </div>
         </div>
 
@@ -216,7 +212,7 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === 'budget' ? (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900">Your Budget</h2>
@@ -258,7 +254,14 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
-        )}
+        ) : activeTab === 'loan' ? (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-gray-900">Your Loans</h2>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+              <p className="text-gray-600">Loan content goes here.</p>
+            </div>
+          </div>
+        ) : null}
 
         {/* Stats Cards */}
         {activeTab === 'goals' && <StatsCards goals={goals} />}
