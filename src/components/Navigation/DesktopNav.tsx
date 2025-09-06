@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, History, User } from 'lucide-react';
+import { Home, History, User, HandCoins } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const DesktopNav: React.FC = () => {
@@ -9,6 +9,7 @@ const DesktopNav: React.FC = () => {
   const navItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/history', icon: History, label: 'History' },
+    { path: '/lend', icon: HandCoins, label: 'Lend' },
     { path: '/account', icon: User, label: 'Account' },
   ];
 

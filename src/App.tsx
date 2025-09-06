@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Dashboard from './pages/Dashboard';
 import Auth from './pages/Auth';
 import History from './pages/History';
+import Lend from './pages/Lend';
 import Account from './pages/Account';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -41,6 +42,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <History />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/lend"
+          element={
+            <ProtectedRoute>
+              <Lend />
             </ProtectedRoute>
           }
         />
